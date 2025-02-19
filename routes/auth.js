@@ -42,6 +42,8 @@ router.post("/login", async (req, res) => {
         expiresIn: process.env.JWT_EXPIRES_IN,
       });
   
+
+      res.cookie("jwt", token, { httpOnly: true, secure: true, sameSite: "strict" });
       res.status(200).json({ message: "Login successful", token });
     } catch (error) {
       res.status(500).json({ message: "Error logging in", error });
