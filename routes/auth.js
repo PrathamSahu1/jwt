@@ -3,7 +3,9 @@ const jwt = require("jsonwebtoken");
 const bcrypt = require("bcrypt");
 require("dotenv").config();
 const router = express.Router();
-const db = require('../models/index')
+const db = require('../models/index');
+const { ApiError } = require("../utils/apiError");
+const {ApiResponse} = require('../utils/apiResponse')
 const User = require('../models/user')(db.sequelize,db.Sequelize.DataTypes);
 
 
@@ -31,10 +33,15 @@ router.post("/register", async (req, res) => {
 router.post("/login", async (req, res) => {
     try {
       const { email, password } = req.body;
+
+      if(!email){
+        throw new ApiError(400,"email is required")
+      }
+
       const user = await User.findOne({ where: { email } });
   
       if (!user || !(await user.checkPassword(password))) {
-        return res.status(401).json({ message: "Invalid email or password" });
+        throw new ApiError(404, "invalid email or password")
       }
   
       // Generate JWT token
@@ -43,10 +50,16 @@ router.post("/login", async (req, res) => {
       });
   
 
-      res.cookie("jwt", token, { httpOnly: true, secure: true, sameSite: "strict" });
-      res.status(200).json({ message: "Login successful", token });
+      
+      res
+      .status(200)
+      .cookie("jwt", token, { httpOnly: true, secure: true, sameSite: "strict" })
+      .json(new ApiResponse(200,{name:user.name,email:user.email},"Successfully logged In"));
+
+
+
     } catch (error) {
-      res.status(500).json({ message: "Error logging in", error });
+      res.status(error.statusCode || 500).json({ message: error.message});
     }
   });
 
